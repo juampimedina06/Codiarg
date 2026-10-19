@@ -16,6 +16,7 @@ import {
   Sparkles,
   Check,
   Send,
+  Loader2,
   Layers,
   Cpu,
   Smartphone,
@@ -491,8 +492,16 @@ const StarBorderButton: React.FC<{
   href?: string;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  disabled?: boolean;
   className?: string;
-}> = ({ children, href, onClick, type = 'button', className = '' }) => {
+}> = ({
+  children,
+  href,
+  onClick,
+  type = 'button',
+  disabled = false,
+  className = '',
+}) => {
   const ref = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -500,14 +509,18 @@ const StarBorderButton: React.FC<{
   const springY = useSpring(y, { stiffness: 150, damping: 14, mass: 0.1 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
+    if (!ref.current || disabled) return;
     const rect = ref.current.getBoundingClientRect();
     x.set((e.clientX - (rect.left + rect.width / 2)) * 0.28);
     y.set((e.clientY - (rect.top + rect.height / 2)) * 0.28);
   };
 
   const innerContent = (
-    <span className="relative inline-flex rounded-full p-[2px] overflow-hidden group shadow-[0_10px_35px_rgba(6,27,51,0.45)]">
+    <span
+      className={`relative inline-flex rounded-full p-[2px] overflow-hidden group shadow-[0_10px_35px_rgba(6,27,51,0.45)] ${
+        disabled ? 'opacity-65 cursor-not-allowed' : ''
+      }`}
+    >
       <span className="absolute inset-[-100%] animate-[spin_3.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#061B33_0%,#FFFFFF_30%,#58CC02_65%,#0096F6_100%)]" />
       <span
         className={`relative inline-flex items-center justify-center gap-3 rounded-full bg-[#061B33] group-hover:bg-[#0A2542] px-7 py-3.5 text-sm sm:text-base font-bold text-white transition-all ${className}`}
@@ -533,7 +546,12 @@ const StarBorderButton: React.FC<{
           {innerContent}
         </a>
       ) : (
-        <button type={type} onClick={onClick} className="focus:outline-none">
+        <button
+          type={type}
+          onClick={onClick}
+          disabled={disabled}
+          className="focus:outline-none disabled:cursor-not-allowed"
+        >
           {innerContent}
         </button>
       )}
@@ -685,6 +703,54 @@ export const App: React.FC = () => {
   const [ideaText, setIdeaText] = useState('');
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch(
+        'https://formsubmit.co/ajax/jpmedinagomez1@gmail.com',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            _subject: `Nueva idea de proyecto en Codiarg - ${clientName} (${selectedType})`,
+            _captcha: 'false',
+            _template: 'table',
+            Nombre: clientName,
+            'Tipo de Proyecto': selectedType,
+            'Canal Preferido': contactChannel,
+            Contacto: email,
+            'Idea / Mensaje': ideaText,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (
+        response.ok &&
+        (result.success === 'true' || result.success === true)
+      ) {
+        setSent(true);
+      } else {
+        throw new Error(result.message || 'Error al procesar el envío');
+      }
+    } catch (err) {
+      console.error('Error enviando consulta:', err);
+      setSubmitError(
+        'Ocurrió un error al enviar el formulario. Por favor intentá de nuevo.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#051B34] text-white selection:bg-[#58CC02] selection:text-[#061B33]">
@@ -1220,10 +1286,7 @@ export const App: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSent(true);
-                }}
+                onSubmit={handleSubmit}
                 className="rounded-[2.5rem] bg-white/[0.04] backdrop-blur-xl border border-white/25 p-6 sm:p-10 lg:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.2)] space-y-8"
               >
                 {/* 1. Qué querés crear (Píldoras simples transparentes) */}
@@ -1331,6 +1394,13 @@ export const App: React.FC = () => {
                   />
                 </div>
 
+                {/* Error message */}
+                {submitError && (
+                  <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-sm font-medium text-red-200">
+                    {submitError}
+                  </div>
+                )}
+
                 {/* Submit + Garantías simples */}
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs sm:text-sm text-white/80">
@@ -1346,10 +1416,17 @@ export const App: React.FC = () => {
 
                   <StarBorderButton
                     type="submit"
+                    disabled={isSubmitting}
                     className="!px-10 !py-4 !text-base sm:!text-lg"
                   >
-                    <span>Enviar mi idea</span>
-                    <Send className="h-5 w-5 text-[#58CC02]" />
+                    <span>
+                      {isSubmitting ? 'Enviando idea...' : 'Enviar mi idea'}
+                    </span>
+                    {isSubmitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-[#58CC02]" />
+                    ) : (
+                      <Send className="h-5 w-5 text-[#58CC02]" />
+                    )}
                   </StarBorderButton>
                 </div>
               </motion.form>
