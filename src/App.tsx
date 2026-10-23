@@ -6,13 +6,11 @@ import {
   useSpring,
   useMotionValue,
   useMotionTemplate,
-  useVelocity,
   useInView,
   AnimatePresence,
 } from 'framer-motion';
 import {
   ArrowUpRight,
-  ArrowRight,
   Sparkles,
   Check,
   Send,
@@ -23,96 +21,9 @@ import {
   Rocket,
 } from 'lucide-react';
 import { CodiargLogo3D } from './components/CodiargLogo3D';
-
-/* ==========================================================================
-   MOCK PROJECTS DATA (PALETA OFICIAL CODIARG: CERULEAN #0096F6 + LEAF #58CC02)
-   ========================================================================== */
-
-export interface ProjectItem {
-  id: string;
-  number: string;
-  title: string;
-  subtitle: string;
-  category: string;
-  year: string;
-  description: string;
-  metricValue: string;
-  metricLabel: string;
-  mainImage: string;
-  floatingImage: string;
-  accentColor: string;
-}
-
-const PROJECTS_DATA: ProjectItem[] = [
-  {
-    id: 'novapay',
-    number: '01',
-    title: 'NOVAPAY',
-    subtitle: 'Billetera & Tesorería Global con IA',
-    category: 'FINTECH & IA',
-    year: '2026',
-    description:
-      'Diseñamos y programamos desde cero un motor financiero capaz de mover liquidez en 40 divisas instantáneamente con conciliación autónoma.',
-    metricValue: '+340%',
-    metricLabel: 'Volumen procesado en 6 meses',
-    mainImage:
-      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=85',
-    floatingImage:
-      'https://images.unsplash.com/photo-1642790106117-e829e14a795f?auto=format&fit=crop&w=800&q=80',
-    accentColor: '#0096F6',
-  },
-  {
-    id: 'aether-os',
-    number: '02',
-    title: 'AETHER OS',
-    subtitle: 'Cerebro Operativo para Empresas',
-    category: 'SAAS & AGENTES IA',
-    year: '2026',
-    description:
-      'Unificamos ventas, logística y atención al cliente en una única plataforma web donde agentes de IA ejecutan el trabajo operativo pesado.',
-    metricValue: '10x',
-    metricLabel: 'Más rápido que su software anterior',
-    mainImage:
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1600&q=85',
-    floatingImage:
-      'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80',
-    accentColor: '#58CC02',
-  },
-  {
-    id: 'kinetix',
-    number: '03',
-    title: 'KINETIX',
-    subtitle: 'Biometría & Salud en Tiempo Real',
-    category: 'ECOSISTEMA MOBILE',
-    year: '2025',
-    description:
-      'Aplicación nativa iOS y Android con interfaz futurista a 120Hz que conecta sensores médicos con diagnóstico preventivo instantáneo.',
-    metricValue: '4.9 ★',
-    metricLabel: 'Calificación con +120k usuarios activos',
-    mainImage:
-      'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=1600&q=85',
-    floatingImage:
-      'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&q=80',
-    accentColor: '#0096F6',
-  },
-  {
-    id: 'orbital',
-    number: '04',
-    title: 'ORBITAL',
-    subtitle: 'Logística Autónoma Latinoamericana',
-    category: 'PLATAFORMA CLOUD',
-    year: '2025',
-    description:
-      'Software a medida con mapas predictivos en vivo para optimizar miles de entregas diarias y reducir costos operativos drásticamente.',
-    metricValue: '-45%',
-    metricLabel: 'Reducción en costos logísticos',
-    mainImage:
-      'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=85',
-    floatingImage:
-      'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80',
-    accentColor: '#58CC02',
-  },
-];
+import { AgencyProjectsShowcase } from './components/AgencyProjectsShowcase';
+import { ProjectDetailPage } from './components/ProjectDetailPage';
+import { REAL_PROJECTS, Project } from './data/projectsData';
 
 const SERVICES_LIST = [
   {
@@ -420,7 +331,7 @@ const ShinyText: React.FC<{
 /**
  * 4. React Bits <TiltedCard />
  */
-const TiltedCard: React.FC<{
+export const TiltedCard: React.FC<{
   children: React.ReactNode;
   floatingBadge?: React.ReactNode;
   className?: string;
@@ -659,19 +570,58 @@ export const App: React.FC = () => {
   );
   const portalImageScale = useTransform(portalProgress, [0, 1], [1.18, 1]);
 
-  // Sticky Horizontal Scroll Reel + Velocity Skew for Projects
-  const horizontalRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress: horizontalProgress } = useScroll({
-    target: horizontalRef,
-    offset: ['start start', 'end end'],
-  });
-  const xReel = useTransform(horizontalProgress, [0, 1], ['0%', '-75%']);
-  const scrollVelocity = useVelocity(horizontalProgress);
-  const smoothVelocity = useSpring(scrollVelocity, {
-    stiffness: 120,
-    damping: 25,
-  });
-  const velocitySkew = useTransform(smoothVelocity, [-0.6, 0.6], [6, -6]);
+  // Interactive Projects Showcase State & Dedicated Full-Page View
+  const [selectedDetailProject, setSelectedDetailProject] =
+    useState<Project | null>(null);
+
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#proyecto-')) {
+        const id = hash.replace('#proyecto-', '');
+        const found = REAL_PROJECTS.find((p) => p.id === id);
+        if (found) {
+          setSelectedDetailProject(found);
+          return;
+        }
+      }
+      if (
+        hash === '' ||
+        hash === '#proyectos' ||
+        hash === '#cotizar' ||
+        hash === '#servicios' ||
+        hash === '#proceso'
+      ) {
+        setSelectedDetailProject(null);
+      }
+    };
+
+    handleHash();
+    window.addEventListener('popstate', handleHash);
+    return () => window.removeEventListener('popstate', handleHash);
+  }, []);
+
+  const handleOpenDetail = (proj: Project) => {
+    setSelectedDetailProject(proj);
+    window.history.pushState(null, '', `#proyecto-${proj.id}`);
+  };
+
+  const handleBackToLanding = () => {
+    setSelectedDetailProject(null);
+    window.history.pushState(null, '', '#proyectos');
+  };
+
+  const handleConsultType = (type: string) => {
+    setSelectedType(type);
+    setSelectedDetailProject(null);
+    window.history.pushState(null, '', '#cotizar');
+    setTimeout(() => {
+      const formElement = document.getElementById('cotizar');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
+  };
 
   // React Bits FlowingMenu + Floating Cursor Image Follower in Services Section
   const servicesSectionRef = useRef<HTMLDivElement>(null);
@@ -751,6 +701,18 @@ export const App: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Dedicated Full-Page View for Project Deep Dive
+  if (selectedDetailProject) {
+    return (
+      <ProjectDetailPage
+        project={selectedDetailProject}
+        onBack={handleBackToLanding}
+        onSelectProject={(p) => handleOpenDetail(p)}
+        onConsult={handleConsultType}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#051B34] text-white selection:bg-[#58CC02] selection:text-[#061B33]">
@@ -976,118 +938,40 @@ export const App: React.FC = () => {
       </section>
 
       {/* ====================================================================
-          PHASE 2: STICKY HORIZONTAL SCROLL PROJECTS REEL + REACT BITS TILTEDCARD
+          PHASE 2: CINEMATIC AGENCY-GRADE WORK SHOWCASE (METALAB / LINEAR INSPIRED)
           ==================================================================== */}
       <section
         id="proyectos"
-        ref={horizontalRef}
-        className="relative z-10 h-[360vh]"
+        className="relative z-10 py-24 sm:py-36 px-6 sm:px-12 border-t border-white/15 overflow-hidden"
       >
-        <div className="sticky top-0 flex h-screen flex-col justify-between overflow-hidden py-12 sm:py-16">
-          <div className="mx-auto flex w-full max-w-[1440px] items-end justify-between px-6 sm:px-12">
+        <div className="mx-auto max-w-[1480px]">
+          {/* Section Editorial Header */}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-14 sm:mb-18 gap-6">
             <div>
-              <DecryptedText
-                text="PORTAFOLIO INTERACTIVO // DESLIZÁ HACIA ABAJO"
-                className="text-xs font-bold uppercase tracking-[0.25em] text-[#58CC02]"
-              />
-              <h2 className="mt-2 font-display text-3xl sm:text-5xl font-bold text-white">
-                Proyectos creados a medida
+              <div className="flex items-center gap-3 mb-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#58CC02] animate-ping" />
+                <DecryptedText
+                  text="TRABAJO SELECCIONADO // CASOS DE ÉXITO REALES"
+                  className="text-xs font-bold uppercase tracking-[0.28em] text-[#58CC02]"
+                />
+              </div>
+              <h2 className="font-display text-4xl sm:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[0.98]">
+                Ingeniería que genera{' '}
+                <span className="bg-gradient-to-r from-white via-[#BAE6FD] to-[#58CC02] bg-clip-text text-transparent">
+                  impacto real.
+                </span>
               </h2>
             </div>
-            <div className="hidden sm:flex items-center gap-3 text-xs font-mono font-bold text-white bg-[#061B33]/75 px-4 py-2 rounded-full border border-white/25">
-              <span>SCROLL PARA NAVEGAR</span>
-              <ArrowRight className="h-4 w-4 text-[#58CC02]" />
-            </div>
+            <p className="text-[#E0F2FE]/85 max-w-xl text-base sm:text-lg leading-relaxed">
+              Inspirados en los estándares de las mejores firmas de software: productos diseñados, programados y escalados desde cero, con arquitecturas de alta velocidad y código 100% propietario.
+            </p>
           </div>
 
-          <div className="flex items-center overflow-visible">
-            <motion.div
-              style={{ x: xReel, skewX: velocitySkew }}
-              className="flex gap-12 sm:gap-20 px-6 sm:px-16"
-            >
-              {PROJECTS_DATA.map((project) => (
-                <div
-                  key={project.id}
-                  className="relative w-[86vw] sm:w-[74vw] lg:w-[66vw] shrink-0 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center"
-                >
-                  <span className="pointer-events-none select-none absolute -top-16 -left-6 z-0 font-display text-[11rem] sm:text-[16rem] font-bold leading-none text-stroke-subtle">
-                    {project.number}
-                  </span>
-
-                  {/* React Bits TiltedCard with White Rim & Navy Contour */}
-                  <div className="lg:col-span-7 relative z-10">
-                    <TiltedCard
-                      floatingBadge={
-                        <div className="flex items-center gap-4 rounded-2xl bg-[#061B33] border-2 border-white/80 p-4 shadow-[0_20px_50px_rgba(6,27,51,0.7)]">
-                          <img
-                            src={project.floatingImage}
-                            alt={project.subtitle}
-                            className="h-16 w-24 rounded-xl object-cover border border-white/20"
-                          />
-                          <div className="pr-2">
-                            <div className="font-display text-2xl font-bold text-[#58CC02]">
-                              {project.metricValue}
-                            </div>
-                            <div className="text-xs font-medium text-white">
-                              {project.metricLabel}
-                            </div>
-                          </div>
-                        </div>
-                      }
-                    >
-                      <div className="relative aspect-[16/10] overflow-hidden rounded-[2rem] border-2 border-white/40 bg-[#061B33] shadow-[0_25px_70px_rgba(6,27,51,0.75)]">
-                        <img
-                          src={project.mainImage}
-                          alt={project.title}
-                          className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-tr from-[#061B33]/85 via-transparent to-transparent" />
-
-                        <div className="absolute top-5 left-5 rounded-full bg-[#061B33]/90 backdrop-blur-md border border-white/40 px-4 py-1.5 text-xs font-bold text-white">
-                          {project.category} • {project.year}
-                        </div>
-                      </div>
-                    </TiltedCard>
-                  </div>
-
-                  {/* Open Editorial Project Story */}
-                  <div className="lg:col-span-5 relative z-10 space-y-5 lg:pl-6">
-                    <DecryptedText
-                      text={`CASO DE ÉXITO ${project.number}`}
-                      className="text-xs font-bold uppercase tracking-[0.2em] text-[#58CC02]"
-                    />
-                    <h3 className="font-display text-4xl sm:text-6xl font-bold text-white leading-none">
-                      {project.title}
-                    </h3>
-                    <div className="text-lg sm:text-xl font-bold text-[#BAE6FD]">
-                      {project.subtitle}
-                    </div>
-                    <p className="text-sm sm:text-base text-[#E0F2FE] leading-relaxed">
-                      {project.description}
-                    </p>
-                    <div className="pt-2">
-                      <a
-                        href="#cotizar"
-                        className="group inline-flex items-center gap-2 rounded-full bg-[#061B33]/80 border border-white/30 px-5 py-2.5 text-sm font-bold text-white hover:border-[#58CC02] transition-colors"
-                      >
-                        <span>Crear un proyecto de este nivel</span>
-                        <ArrowUpRight className="h-4 w-4 text-[#58CC02] transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-12">
-            <div className="h-1 w-full bg-white/20 overflow-hidden rounded-full">
-              <motion.div
-                style={{ scaleX: horizontalProgress }}
-                className="h-full w-full origin-left bg-gradient-to-r from-white via-[#0096F6] to-[#58CC02]"
-              />
-            </div>
-          </div>
+          {/* Cinematic Agency-Grade Projects Showcase */}
+          <AgencyProjectsShowcase
+            onOpenCaseStudy={handleOpenDetail}
+            onConsult={handleConsultType}
+          />
         </div>
       </section>
 
